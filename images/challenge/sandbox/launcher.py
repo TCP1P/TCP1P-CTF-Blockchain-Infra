@@ -6,6 +6,7 @@ import requests
 from functools import wraps
 from typing import Callable, TypeVar, Any
 import websockets
+from websockets.client import connect
 import asyncio
 import json
 
@@ -253,11 +254,11 @@ def proxy_request(uuid: str):
 
 @sock.route("/<uuid:uuid>")
 @limiter.limit("240 per minute")
-async def proxy_websocket(ws, uuid: str):
+async def proxy_websocket(ws: websockets.WebSocketServerProtocol, uuid: str):
     """Proxy WebSocket connections to blockchain nodes"""
     try:
-        if not instance_exists(uuid):
-            await ws.send(json.dumps({
+        if not instance_exists(uuid) or BLOCKCHAIN_MANAGER.blockchain_type != "solana":
+            ws.send(json.dumps({
                 "jsonrpc": "2.0",
                 "error": {"code": -32602, "message": "Invalid instance ID"},
                 "id": None
@@ -268,53 +269,37 @@ async def proxy_websocket(ws, uuid: str):
         blockchain_type = BLOCKCHAIN_MANAGER.blockchain_type
         rules = config.BLOCKCHAIN_RULES.get(blockchain_type, {})
 
-        async with websockets.connect(f"ws://127.0.0.1:{node_info.port}/") as node_ws:
-            # Create tasks for bidirectional communication
-            async def forward_to_node():
+        async with connect(f"ws://127.0.0.1:{int(node_info.port)+1}/") as node_ws:
+            while True:
+                message = ws.receive()
+                data = json.loads(message)
+                
+                # Validate method permissions
+                if "method" in data:
+                    method = data["method"]
+                    if blockchain_type == "solana":
+                        if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
+                            ws.send(json.dumps({
+                                "jsonrpc": "2.0",
+                                "error": {"code": -32601, "message": "Method not allowed"},
+                                "id": data.get("id")
+                            }))
+                            continue
+                
                 try:
-                    while True:
-                        message = await ws.receive()
-                        data = json.loads(message)
-                        
-                        # Validate method permissions
-                        if "method" in data:
-                            method = data["method"]
-                            if blockchain_type == "eth":
-                                allowed = any(method.startswith(ns) for ns in rules["allowed_namespaces"])
-                                blocked = method in rules["blocked_methods"]
-                                if not allowed or blocked:
-                                    await ws.send(json.dumps({
-                                        "jsonrpc": "2.0",
-                                        "error": {"code": -32601, "message": "Method not allowed"},
-                                        "id": data.get("id")
-                                    }))
-                                    continue
-                            elif blockchain_type == "solana":
-                                if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
-                                    await ws.send(json.dumps({
-                                        "jsonrpc": "2.0",
-                                        "error": {"code": -32601, "message": "Method not allowed"},
-                                        "id": data.get("id")
-                                    }))
-                                    continue
-                        
-                        await node_ws.send(message)
-                except websockets.exceptions.ConnectionClosed:
-                    pass
-
-            async def forward_to_client():
-                try:
-                    while True:
-                        message = await node_ws.recv()
-                        await ws.send(message)
-                except websockets.exceptions.ConnectionClosed:
-                    pass
-
-            # Run both forwarding tasks concurrently
-            await asyncio.gather(forward_to_node(), forward_to_client())
+                    await asyncio.wait_for(node_ws.send(message), timeout=5.0)
+                    message = await asyncio.wait_for(node_ws.recv(), timeout=5.0)
+                    ws.send(message)
+                except asyncio.TimeoutError:
+                    logger.warning("WebSocket operation timed out after 5 seconds")
+                    continue
+                except Exception as e:
+                    logger.error(f"WebSocket operation error: {str(e)}")
+                    continue
 
     except Exception as e:
         logger.error(f"WebSocket proxy error: {str(e)}")
+        traceback.print_exc()
         try:
             await ws.send(json.dumps({
                 "jsonrpc": "2.0",
