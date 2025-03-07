@@ -1,6 +1,7 @@
 Flask==3.0.3
 Flask-Cors==4.0.1
 Flask-Limiter==3.8.0
+flask-sock==0.7.0
 MarkupSafe==2.1.5
 Werkzeug==3.0.3
 starknet-py==0.23.0

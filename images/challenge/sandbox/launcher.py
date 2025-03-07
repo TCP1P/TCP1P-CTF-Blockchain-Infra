@@ -5,10 +5,14 @@ import traceback
 import requests
 from functools import wraps
 from typing import Callable, TypeVar, Any
+import websockets
+import asyncio
+import json
 
 from flask import Flask, Response, request, session, send_file, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_sock import Sock
 
 from .env import SESSION_COOKIE_NAME, SECRET_KEY # type: ignore
 from .ppow import Challenge, check
@@ -61,6 +65,7 @@ config = AppConfig()
 
 # Flask application setup
 app = Flask(__name__)
+sock = Sock(app)
 app.secret_key = config.SECRET_KEY
 app.config['SESSION_COOKIE_NAME'] = config.SESSION_COOKIE_NAME
 app.config['SESSION_COOKIE_SECURE'] = False
@@ -203,7 +208,7 @@ async def get_flag():
 @app.route("/<uuid:uuid>", methods=["POST"])
 @limiter.limit("240 per minute")
 def proxy_request(uuid: str):
-    """Proxy requests to blockchain nodes"""
+    """Proxy HTTP requests to blockchain nodes"""
     try:
         data = request.get_json()
         blockchain_type = BLOCKCHAIN_MANAGER.blockchain_type
@@ -246,6 +251,79 @@ def proxy_request(uuid: str):
         logger.error(f"Node communication error: {str(e)}")
         return jsonrpc_error(-32000, "Backend service unavailable", data.get("id"))
 
+@sock.route("/<uuid:uuid>")
+@limiter.limit("240 per minute")
+async def proxy_websocket(ws, uuid: str):
+    """Proxy WebSocket connections to blockchain nodes"""
+    try:
+        if not instance_exists(uuid):
+            await ws.send(json.dumps({
+                "jsonrpc": "2.0",
+                "error": {"code": -32602, "message": "Invalid instance ID"},
+                "id": None
+            }))
+            return
+
+        node_info = load_instance(uuid)
+        blockchain_type = BLOCKCHAIN_MANAGER.blockchain_type
+        rules = config.BLOCKCHAIN_RULES.get(blockchain_type, {})
+
+        async with websockets.connect(f"ws://127.0.0.1:{node_info.port}/") as node_ws:
+            # Create tasks for bidirectional communication
+            async def forward_to_node():
+                try:
+                    while True:
+                        message = await ws.receive()
+                        data = json.loads(message)
+                        
+                        # Validate method permissions
+                        if "method" in data:
+                            method = data["method"]
+                            if blockchain_type == "eth":
+                                allowed = any(method.startswith(ns) for ns in rules["allowed_namespaces"])
+                                blocked = method in rules["blocked_methods"]
+                                if not allowed or blocked:
+                                    await ws.send(json.dumps({
+                                        "jsonrpc": "2.0",
+                                        "error": {"code": -32601, "message": "Method not allowed"},
+                                        "id": data.get("id")
+                                    }))
+                                    continue
+                            elif blockchain_type == "solana":
+                                if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
+                                    await ws.send(json.dumps({
+                                        "jsonrpc": "2.0",
+                                        "error": {"code": -32601, "message": "Method not allowed"},
+                                        "id": data.get("id")
+                                    }))
+                                    continue
+                        
+                        await node_ws.send(message)
+                except websockets.exceptions.ConnectionClosed:
+                    pass
+
+            async def forward_to_client():
+                try:
+                    while True:
+                        message = await node_ws.recv()
+                        await ws.send(message)
+                except websockets.exceptions.ConnectionClosed:
+                    pass
+
+            # Run both forwarding tasks concurrently
+            await asyncio.gather(forward_to_node(), forward_to_client())
+
+    except Exception as e:
+        logger.error(f"WebSocket proxy error: {str(e)}")
+        try:
+            await ws.send(json.dumps({
+                "jsonrpc": "2.0",
+                "error": {"code": -32000, "message": "Backend service unavailable"},
+                "id": None
+            }))
+        except:
+            pass
+
 # Supporting routes
 @app.route("/data")
 def get_instance_data():
@@ -266,7 +344,10 @@ def serve_frontend():
 def generate_session_data(node_info: NodeInfo) -> dict:
     """Generate standardized session data structure"""
     base_data = {
-        "0": {"RPC_URL": f"{{ORIGIN}}/{node_info.uuid}"},
+        "0": {
+            "RPC_URL": f"{{ORIGIN}}/{node_info.uuid}",
+            "WS_URL": f"ws://{{ORIGIN}}/{node_info.uuid}/ws"
+        },
         "message": "Your private blockchain has been deployed. It will automatically terminate in 30 minutes.",
     }
     
