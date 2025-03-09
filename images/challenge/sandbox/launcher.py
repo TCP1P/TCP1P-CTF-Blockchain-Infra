@@ -207,7 +207,7 @@ async def get_flag():
         return error_response("Flag verification failed", 500)
 
 @app.route("/<uuid:uuid>", methods=["POST"])
-@limiter.limit("240 per minute")
+@limiter.exempt
 def proxy_request(uuid: str):
     """Proxy HTTP requests to blockchain nodes"""
     try:
@@ -287,11 +287,11 @@ async def proxy_websocket(ws: websockets.WebSocketServerProtocol, uuid: str):
                             continue
                 
                 try:
-                    await asyncio.wait_for(node_ws.send(message), timeout=5.0)
-                    message = await asyncio.wait_for(node_ws.recv(), timeout=5.0)
+                    await asyncio.wait_for(node_ws.send(message), timeout=1)
+                    message = await asyncio.wait_for(node_ws.recv(), timeout=1)
                     ws.send(message)
                 except asyncio.TimeoutError:
-                    logger.warning("WebSocket operation timed out after 5 seconds")
+                    logger.warning("WebSocket operation timed out after 1 seconds")
                     continue
                 except Exception as e:
                     logger.error(f"WebSocket operation error: {str(e)}")
