@@ -1,12 +1,6 @@
 #!/bin/bash
 
-# create env.py automatically
-# will have SESSION_COOKIE_NAME = "blockchain_"+random_string
-# will have SECRET_KEY = random_string
-
-echo "Creating env.py"
-echo "SESSION_COOKIE_NAME = \"blockchain_$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)\"" > /usr/lib/python/sandbox/env.py
-echo "SECRET_KEY = \"$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)\"" >> /usr/lib/python/sandbox/env.py
+# env.py is now handled by the Python code using PersistentStore
 
 (
     cd /home/ctf/

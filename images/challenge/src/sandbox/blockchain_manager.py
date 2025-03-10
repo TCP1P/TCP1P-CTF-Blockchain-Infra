@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import os
 import re
 import sys
@@ -10,29 +8,21 @@ import signal
 import asyncio
 import subprocess
 from threading import Thread
-from typing import Callable, List, Literal, Optional, Any
+from typing import Callable, Literal
 from uuid import uuid4
-import shutil
-import pickle
-import threading
-from gunicorn.arbiter import Arbiter
-import fcntl
 
 # Third-party imports
 from base58 import b58encode
 from web3 import Web3
 from eth_account import Account as EthAccount
 from eth_account.hdaccount import generate_mnemonic
-from eth_account.signers.local import LocalAccount as EthLocalAccount
-from solders.pubkey import Pubkey # type: ignore
 from solders.keypair import Keypair # type: ignore
-from solana.transaction import Transaction
-from solders.instruction import Instruction, AccountMeta # type: ignore
-from solders.system_program import ID as SYS_PROGRAM_ID
 from starknet_py.contract import Contract as CairoContract
 from starknet_py.net.account.account import Account as CairoAccount, KeyPair as CairoKeyPair
 from starknet_py.net.full_node_client import FullNodeClient as CairoFullNodeClient
 from solana.rpc.async_api import AsyncClient as SolanaClient
+
+from sandbox.helper import FileLock, PersistentStore
 from .solana_helper import is_solved as solana_is_solved
 
 EthAccount.enable_unaudited_hdwallet_features()
@@ -54,48 +44,6 @@ PICKLE_STATE_FILE = "/tmp/solana_state.pickle"
 LOCK_FILE = "/tmp/solana.lock"
 os.makedirs(INSTANCE_BY_TEAM_DIR, exist_ok=True)
 os.makedirs(INSTANCE_BY_UUID_DIR, exist_ok=True)
-
-class PersistentStore:
-    def __init__(self, filename: str):
-        self.filename = filename
-        
-    def get(self, key: str) -> Optional[Any]:
-        """Get value from store by key."""
-        try:
-            with open(self.filename, "rb") as f:
-                data = pickle.load(f)
-                return data.get(key)
-        except (FileNotFoundError, pickle.UnpicklingError) as e:
-            print(e)            
-            return None
-            
-    def set(self, key: str, value: Any) -> None:
-        """Set key-value pair in store."""
-        try:
-            with open(self.filename, "rb") as f:
-                data = pickle.load(f)
-        except (FileNotFoundError, pickle.UnpicklingError):
-            data = {}
-            
-        data[key] = value
-        
-        with open(self.filename, "wb") as f:
-            pickle.dump(data, f)
-
-class FileLock:
-    def __init__(self, lock_file):
-        self.lock_file = lock_file
-        self.fd = None
-
-    def __enter__(self):
-        self.fd = open(self.lock_file, 'w')
-        fcntl.flock(self.fd, fcntl.LOCK_EX)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.fd:
-            fcntl.flock(self.fd, fcntl.LOCK_UN)
-            self.fd.close()
 
 def get_solana_state():
     store = PersistentStore(PICKLE_STATE_FILE)

@@ -1,7 +1,5 @@
 import asyncio
 from pathlib import Path
-import pickle
-from typing import Any, Optional
 
 import sandbox
 from sandbox import PersistentStore
@@ -9,6 +7,7 @@ import sandbox.solana_helper as helper
 from solana.rpc.async_api import AsyncClient
 from solders.keypair import Keypair  # type: ignore
 from interaction import setup
+
 
 # Initialize store
 store = PersistentStore("/tmp/program_state.pickle")

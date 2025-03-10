@@ -38,18 +38,17 @@ async def execute(*args: str, cwd: Path = None, env: Dict[str,str] = os.environ)
         )
     stdout, stderr = await proc.communicate()
     if proc.returncode == 0:
-        return stdout.decode(), stderr.decode()
-    print("error:", stderr.decode(), stdout.decode())
-    return None
+        return stdout.decode(), None
+    return stdout.decode(), stderr.decode()
 
 async def execute_command(*args: str, cwd: Path = None) -> Tuple[str, str]:
     """Execute shell command asynchronously with retries"""
     for _ in range(MAX_RETRIES):
-        ret = await execute(*args, cwd=cwd)
-        if ret != None:
-            return ret
+        stdout, stderr = await execute(*args, cwd=cwd)
+        if stderr == None:
+            return stdout
         await asyncio.sleep(DELAY)
-    raise RuntimeError(f"Command failed after {MAX_RETRIES} attempts: {' '.join(args)}")
+    raise RuntimeError(f"Command failed after {MAX_RETRIES} attempts: {' '.join(args)} {stderr}")
 
 
 
@@ -98,10 +97,11 @@ async def deploy_program(client: AsyncClient, system_kp: Keypair, program_name: 
     """Deploy Solana program using the CLI and return the deployed program ID.
        Assumes the program binary is at contracts/target/deploy/<program_name>.so."""
     async with TempKeyfile(system_kp) as keyfile:
-        stdout, _ = await execute_command(
+        stdout = await execute_command(
             "anchor", "deploy", "--program-name", program_name,
             "--provider.cluster", client._provider.endpoint_uri,
             "--provider.wallet", str(keyfile),
+            "--", "--commitment", "finalized",
             cwd=CONTRACTS_DIR
         )
     if match := re.search(r'Program Id: (\S+)', stdout):

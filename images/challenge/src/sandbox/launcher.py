@@ -4,7 +4,7 @@ import logging
 import traceback
 import requests
 from functools import wraps
-from typing import Callable, TypeVar, Any
+from typing import Callable, Any
 import websockets
 from websockets.client import connect
 import asyncio
@@ -17,7 +17,7 @@ from flask_sock import Sock
 
 from .env import SESSION_COOKIE_NAME, SECRET_KEY # type: ignore
 from .ppow import Challenge, check
-from .blockchain_manager import BLOCKCHAIN_MANAGER, NodeInfo, instance_exists, load_instance, FileLock, PersistentStore
+from .blockchain_manager import BLOCKCHAIN_MANAGER, NodeInfo, instance_exists, load_instance
 
 class AppConfig:
     """Centralized application configuration"""

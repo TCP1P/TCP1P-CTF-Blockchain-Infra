@@ -9,7 +9,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/instal
 
 COPY 96-start-launcher /startup
 
-COPY sandbox /usr/lib/python/sandbox
+COPY src/sandbox /usr/lib/python/sandbox
 
 ENV PYTHONPATH=/usr/lib/python
 

@@ -10,13 +10,10 @@ describe("setup", () => {
   const solveAccountKeypair =  Keypair.fromSecretKey(Uint8Array.from(JSON.parse(solvedAccount)))
   anchor.setProvider(provider);
   const program = anchor.workspace.Setup as Program<Setup>;
-
   it("initialize program", async () => {
-    const tx = await program.methods.initialize().accounts({
+    const tx = await program.methods.isSolved().accounts({
       solvedAccount: solveAccountKeypair.publicKey,
-      user: provider.wallet.publicKey
-    }).signers([solveAccountKeypair]).rpc();
-    const signatureResult = await provider.connection.confirmTransaction(tx);
-    console.log(JSON.stringify({"message": signatureResult}));
+    }).view({"commitment": "finalized"});
+    console.log(JSON.stringify({"message": tx}));
   });
 });

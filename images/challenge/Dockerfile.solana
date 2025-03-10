@@ -1,28 +1,40 @@
-FROM gcr.io/paradigmxyz/ctf/base:latest
+# Build stage for Rust and Node.js
+FROM gcr.io/paradigmxyz/ctf/base:latest as builder
 
-# install rust
+# Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# install npm
-RUN curl -fsSL https://deb.nodesource.com/setup_23.x | sh
-RUN apt install nodejs -y
-RUN npm install --global yarn
+# Install Node.js and Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_23.x | sh && \
+    apt install -y --no-install-recommends nodejs && \
+    npm install --global yarn && \
+    rm -rf /var/lib/apt/lists/*
 
-# install agave
+# Install Solana tools
 ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
-RUN cargo install --git https://github.com/coral-xyz/anchor avm --force
+RUN cargo install --git https://github.com/coral-xyz/anchor avm --force && \
+    avm install latest && \
+    avm use latest && \
+    sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 
-# install anchor
-RUN avm install latest && avm use latest
-
-# install solana cli
-RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-
-# caching
+# Build Solana dependencies
 COPY ./solana-deps /solana-deps
-RUN cd /solana-deps && anchor build && rm /solana-deps -rf 
+RUN cd /solana-deps && anchor build && rm -rf /solana-deps
 
-COPY 96-start-launcher /startup
-COPY sandbox /usr/lib/python/sandbox
+# Final stage
+FROM gcr.io/paradigmxyz/ctf/base:latest
+
+# Copy only necessary files from builder
+COPY --from=builder /root/.cargo /root/.cargo
+COPY --from=builder /root/.local/share/solana /root/.local/share/solana
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/lib /usr/local/lib
+
+# Set up environment
+ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
 ENV PYTHONPATH=/usr/lib/python
 ENV BLOCKCHAIN_TYPE=solana
+
+# Copy application files
+COPY 96-start-launcher /startup
+COPY src/sandbox /usr/lib/python/sandbox

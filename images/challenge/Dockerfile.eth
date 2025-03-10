@@ -20,7 +20,7 @@ FROM gcr.io/paradigmxyz/ctf/base:latest
 COPY --from=deps /root/.foundry/* /bin/
 COPY 96-start-launcher /startup
 
-COPY sandbox /usr/lib/python/sandbox
+COPY src/sandbox /usr/lib/python/sandbox
 
 ENV PYTHONPATH=/usr/lib/python
 
