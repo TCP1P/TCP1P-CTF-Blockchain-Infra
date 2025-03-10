@@ -29,7 +29,7 @@ def deploy(web3: Web3, deployer_address: str, deployer_privateKey: str, player_a
     )
 
     tx_create = web3.eth.account.sign_transaction(construct_txn, deployer_privateKey)
-    tx_hash = web3.eth.send_raw_transaction(tx_create.rawTransaction)
+    tx_hash = web3.eth.send_raw_transaction(tx_create.raw_transaction)
 
     rcpt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
