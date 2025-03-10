@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.0",
+    "bs58": "^6.0.0"
+  }
+}
