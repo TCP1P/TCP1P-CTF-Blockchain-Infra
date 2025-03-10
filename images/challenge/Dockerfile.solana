@@ -1,5 +1,5 @@
 # Build stage for Rust and Node.js
-FROM gcr.io/paradigmxyz/ctf/base:latest as builder
+FROM gcr.io/paradigmxyz/ctf/base:latest
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -13,22 +13,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_23.x | sh && \
 # Install Solana tools
 ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
 RUN cargo install --git https://github.com/coral-xyz/anchor avm --force && \
-    avm install latest && \
-    avm use latest && \
+    avm install 0.30.1 && \
+    avm use 0.30.1 && \
     sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 
 # Build Solana dependencies
 COPY ./solana-deps /solana-deps
 RUN cd /solana-deps && anchor build && rm -rf /solana-deps
-
-# Final stage
-FROM gcr.io/paradigmxyz/ctf/base:latest
-
-# Copy only necessary files from builder
-COPY --from=builder /root/.cargo /root/.cargo
-COPY --from=builder /root/.local/share/solana /root/.local/share/solana
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /usr/local/lib /usr/local/lib
 
 # Set up environment
 ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"

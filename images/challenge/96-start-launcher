@@ -4,7 +4,7 @@
 
 (
     cd /home/ctf/
-    PYTHONUNBUFFERED=true gunicorn \
+    PYTHONUNBUFFERED=true python3 -m gunicorn \
         --user root \
         --group root \
         --bind 0.0.0.0:$LAUNCHER_PORT \

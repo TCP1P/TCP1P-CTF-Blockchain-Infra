@@ -18,11 +18,16 @@ RUN python3 -m pip install --no-cache-dir --default-timeout=9999 -r /root/requir
 # Final stage
 FROM python:3.12-slim
 
-RUN mkdir /var/log/ctf /startup && \
-    apt update && \
-    apt install -y --no-install-recommends tini curl build-essential libc6 && \
+# Install Python and other dependencies
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    tini \
+    curl \
+    build-essential && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --shell /bin/bash -m ctf
+
+RUN mkdir /var/log/ctf /startup
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY entrypoint.sh /entrypoint.sh

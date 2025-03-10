@@ -1,6 +1,8 @@
 FROM gcr.io/paradigmxyz/ctf/base:latest AS deps
 
 RUN true \
+    && apt-get update \
+    && apt-get install -y git \
     && curl -L https://foundry.paradigm.xyz | bash \
     && bash -c "source /root/.bashrc && foundryup" \
     && chmod 755 -R /root \
