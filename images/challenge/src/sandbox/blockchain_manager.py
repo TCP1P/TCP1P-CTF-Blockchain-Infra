@@ -45,6 +45,8 @@ LOCK_FILE = "/tmp/solana.lock"
 os.makedirs(INSTANCE_BY_TEAM_DIR, exist_ok=True)
 os.makedirs(INSTANCE_BY_UUID_DIR, exist_ok=True)
 
+EVM_VERSION = os.getenv("EVM_VERSION") or "latest"
+
 def get_solana_state():
     store = PersistentStore(PICKLE_STATE_FILE)
     state = store.get('solana_state')
@@ -218,6 +220,7 @@ def launch_ethereum_node(team_id: str) -> NodeInfo:
     mnemonic = generate_mnemonic(12, "english")
     node_uuid = str(uuid4())
 
+    
     # Start Anvil process
     anvil_process = subprocess.Popen(
         args=[
@@ -226,7 +229,8 @@ def launch_ethereum_node(team_id: str) -> NodeInfo:
             "--balance", "5000",
             "--mnemonic", mnemonic,
             "--port", str(node_port),
-            "--block-base-fee-per-gas", "0"
+            "--block-base-fee-per-gas", "0",
+            "--hardfork", EVM_VERSION,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
