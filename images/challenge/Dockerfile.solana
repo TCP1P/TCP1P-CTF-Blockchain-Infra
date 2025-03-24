@@ -14,15 +14,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_23.x | sh && \
 ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
 RUN cargo install --git https://github.com/coral-xyz/anchor avm --force && \
     avm install 0.30.1 && \
-    avm use 0.30.1 && \
-    sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-
+    avm use 0.30.1
+RUN sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.3/install)"
 # Build Solana dependencies
 COPY ./solana-deps /solana-deps
 RUN cd /solana-deps && anchor build && rm -rf /solana-deps
 
 # Set up environment
-ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
 ENV PYTHONPATH=/usr/lib/python
 ENV BLOCKCHAIN_TYPE=solana
 
