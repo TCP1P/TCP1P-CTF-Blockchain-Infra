@@ -47,6 +47,9 @@ os.makedirs(INSTANCE_BY_UUID_DIR, exist_ok=True)
 
 EVM_VERSION = os.getenv("EVM_VERSION") or "latest"
 
+if BLOCKCHAIN_TYPE == "eth":
+    print("EVM_VERSION:", EVM_VERSION)
+
 def get_solana_state():
     store = PersistentStore(PICKLE_STATE_FILE)
     state = store.get('solana_state')
