@@ -164,7 +164,7 @@ async def launch_instance():
         return jsonify({
             "success": True,
             "data": session["data"],
-            "message": "Instance launched successfully"
+            "message": session["data"]["message"]
         })
         
     except Exception as e:
