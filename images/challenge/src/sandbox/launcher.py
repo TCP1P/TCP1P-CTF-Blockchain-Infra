@@ -362,8 +362,8 @@ def internal_error(e):
 
 @app.errorhandler(Exception)
 def handle_exceptions(e):
-    logger.exception("Unhandled exception occurred")
-    return error_response("An unexpected error occurred", 500)
+    logger.exception(f"Unhandled exception occurred: {str(e)}")
+    return error_response(f"An unexpected error occurred: {str(e)}", 500)
 
 # Application initialization
 def run_launcher(deploy_handler: Callable):
