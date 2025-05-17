@@ -163,8 +163,7 @@ async def launch_instance():
         session["data"] = generate_session_data(node_info)
         return jsonify({
             "success": True,
-            "data": session["data"],
-            "message": session["data"]["message"]
+            **session["data"],
         })
         
     except Exception as e:

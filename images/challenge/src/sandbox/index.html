@@ -179,7 +179,7 @@
         const data = await response.json();
         if (response.ok) {
           showSuccess(data.message);
-          if (action === 'launch') displayCredentials(data.data);
+          if (action === 'launch') displayCredentials(data);
           if (action === 'flag') displayFlag(data.flag);
         } else {
           showError(data.error);
