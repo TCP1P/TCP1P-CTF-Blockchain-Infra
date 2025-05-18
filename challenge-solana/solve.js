@@ -3,10 +3,10 @@ const bs58 = require('bs58');
 const { SystemProgram, Keypair, PublicKey } = anchor.web3;
 
 // Replace these values with your own
-PLAYER_KEYPAIR = "3gzKuuWaCj531ixVYHYaZmoAZ2JgQRdwuqc1WSv2YwWnDVAXkMWmMtmcRtSGagX8EXhfmRyZPmV7QJuAjB3MoLPG"
-CTX_PUBKEY = "3FanPCGb2Uo8vAzW4npTfhXkJcoUVVatdCStwkPppzN4"
-PROGRAM_ID = "3uJ1MWUmG9AuQgU5ymQLFLEF7xagk2WPHCAYdWDHBAZN"
-RPC_URL = "http://localhost:48334/9925c004-2f89-4295-a23b-3b006c0364ba"
+const RPC_URL = "http://localhost:48334/b916b4c9-cb56-492c-ab5f-98ffb1368b65";
+const PLAYER_KEYPAIR = "46hjyF7WNumqGsGpy2k7zHLBA5L6bxhkb28NEmWgsirN5TLBQLo1NL14HnYxUpbLSKBpx9CZg1SsUj4EuG3TzVKV";
+const CTX_PUBKEY = "E7ooFfZCRqy7Y4gpgLmBSUxDAy4YYx2KvL4GSmQ9dffe";
+const PROGRAM_ID = "nNeVXm78SpkbdqP8vhPmWz5gZqJbmNQja7NQdBHdDnq";
 
 const main = async () => {
   // Create a connection to the cluster

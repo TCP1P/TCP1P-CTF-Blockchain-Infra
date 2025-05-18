@@ -2,9 +2,11 @@ FROM gcr.io/paradigmxyz/ctf/base:latest AS deps
 
 RUN true \
     && apt-get update \
-    && apt-get install -y git \
+    && apt-get install -y git curl \
     && curl -L https://foundry.paradigm.xyz | bash \
-    && bash -c "source /root/.bashrc && foundryup" \
+    && chmod +x /root/.foundry/bin/foundryup \
+    && export PATH="$PATH:/root/.foundry/bin" \
+    && /root/.foundry/bin/foundryup \
     && chmod 755 -R /root \
     && true
 
@@ -19,7 +21,7 @@ RUN cd /tmp/init && \
 
 FROM gcr.io/paradigmxyz/ctf/base:latest
 
-COPY --from=deps /root/.foundry/* /bin/
+COPY --from=deps /root/.foundry/bin/* /bin/
 COPY 96-start-launcher /startup
 
 COPY src/sandbox /usr/lib/python/sandbox

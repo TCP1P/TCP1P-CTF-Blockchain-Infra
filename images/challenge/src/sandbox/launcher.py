@@ -9,15 +9,16 @@ import websockets
 from websockets.client import connect
 import asyncio
 import json
+import os.path
 
-from flask import Flask, Response, request, session, send_file, jsonify
+from flask import Flask, Response, request, session, send_file, jsonify, send_from_directory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sock import Sock
 
 from .env import SESSION_COOKIE_NAME, SECRET_KEY # type: ignore
 from .ppow import Challenge, check
-from .blockchain_manager import BLOCKCHAIN_MANAGER, NodeInfo, instance_exists, load_instance
+from .blockchain_manager import BLOCKCHAIN_MANAGER, NodeInfo, instance_exists, load_instance, team_instance_exists
 
 class AppConfig:
     """Centralized application configuration"""
@@ -65,7 +66,7 @@ class AppConfig:
 config = AppConfig()
 
 # Flask application setup
-app = Flask(__name__)
+app = Flask(__name__, static_folder="frontend", static_url_path="/static")
 sock = Sock(app)
 app.secret_key = config.SECRET_KEY
 app.config['SESSION_COOKIE_NAME'] = config.SESSION_COOKIE_NAME
@@ -177,6 +178,7 @@ def kill_instance():
     """Terminate blockchain instance"""
     try:
         BLOCKCHAIN_MANAGER.terminate_instance(session["ticket"])
+        session["data"] = None
         return jsonify({
             "success": True,
             "message": "Instance terminated successfully"
@@ -314,6 +316,20 @@ def get_instance_data():
     """Retrieve instance metadata"""
     return jsonify(session.get("data", {}))
 
+@app.route("/status")
+@validate_session
+def get_instance_status():
+    """Check if an instance is running for the current session"""
+    try:
+        running = team_instance_exists(session["ticket"])
+        return jsonify({
+            "success": True,
+            "running": running
+        })
+    except Exception as e:
+        logger.error(f"Status check failed: {str(e)}")
+        return error_response(f"Status check failed: {str(e)}", 500)
+
 @app.route("/challenge")
 def get_current_challenge():
     """Get current proof-of-work challenge"""
@@ -322,7 +338,40 @@ def get_current_challenge():
 @app.route("/")
 def serve_frontend():
     """Serve static frontend interface"""
-    return send_file("index.html")
+    return send_file("frontend/index.html")
+
+@app.route("/<path:path>")
+def serve_static(path):
+    """Serve static files from the frontend directory"""
+    try:
+        # Prevent directory traversal attacks
+        if '..' in path:
+            return error_response("Invalid path", 403)
+            
+        # Handle Next.js static files
+        if path.startswith('_next/'):
+            return send_from_directory("frontend", path)
+            
+        # Check if file exists
+        file_path = os.path.join("frontend", path)
+        if os.path.isfile(file_path):
+            return send_file(file_path)
+            
+        # If it's a UUID format, return the SPA frontend
+        # to let the client-side router handle it
+        if config.UUID_PATTERN.match(path):
+            return send_file("frontend/index.html")
+            
+        # Return the SPA for all other routes that don't match files
+        # This allows the Next.js client-side router to handle routes
+        if not path.endswith(('.html', '.css', '.js', '.json', '.ico', '.png', '.jpg', '.svg', '.woff', '.woff2')):
+            return send_file("frontend/index.html")
+            
+        # File not found
+        return send_file("frontend/404.html"), 404
+    except Exception as e:
+        logger.error(f"Error serving static file: {path}, error: {str(e)}")
+        return error_response("Resource not found", 404)
 
 # Helper functions
 def generate_session_data(node_info: NodeInfo) -> dict:

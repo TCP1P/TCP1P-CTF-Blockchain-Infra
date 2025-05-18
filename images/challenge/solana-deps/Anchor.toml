@@ -1,16 +1,19 @@
+[toolchain]
+package_manager = "yarn"
+
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
 [programs.localnet]
-setup = "35qSrLjTWNtqytQKN487v5MzRQHnd1HaPqNsChzdiK5D"
+exploit = "ESWdUfcFAv8mF8aABmsBnk1bouywaj8NbqGWTpaa8i1"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-wallet = "/home/dimas/.config/solana/id.json"
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

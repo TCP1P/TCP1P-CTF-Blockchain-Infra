@@ -3,6 +3,7 @@
 # env.py is now handled by the Python code using PersistentStore
 
 (
+    echo "starting launcher"
     cd /home/ctf/
     PYTHONUNBUFFERED=true python3 -m gunicorn \
         --user root \

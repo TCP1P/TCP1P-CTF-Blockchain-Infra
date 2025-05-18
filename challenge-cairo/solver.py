@@ -7,18 +7,11 @@ from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account as StarknetAccount, KeyPair
 from starknet_py.net.full_node_client import FullNodeClient
 
-"""
-UUID = "9b74b15f-f109-4c1f-9e85-5675ed1ea703"
-RPC Endpoint = "http://localhost:48334/9b74b15f-f109-4c1f-9e85-5675ed1ea703"
-Private Key = "0x00000000000000000000000000000000453ee795f782b4692444da67f531bb71"
-Setup Contract = "0x13562b0760b37b7f9e0e8e029ca47e9344605285c00f7a2de7e861d6c58054d"
-Wallet = "0x06402e815043798d6b10aa16a688680d710b6f4c501140c8088679975d7e6654"
-"""
 # StarkNet settings
-RPC_URL = "http://localhost:48334/6e15a814-90fe-468b-9db6-87ac07c06b2d"
-PRIVKEY = "0x00000000000000000000000000000000334cf6cbd8093929d8b2efea7e3ea446"
-SETUP_CONTRACT_ADDR = "0x26c8af8df97942429a6b1a90899559226ed432d3656225b99f58f81910dc4d6"
-WALLET_ADDR = "0x020be3a497fbf41c5296bee784de27bcd16beddfd274685e75482624d282a9b8"
+RPC_URL = "http://localhost:48334/2cd11c43-d22a-4838-a06c-fe3e2b467a8e"
+PRIVKEY = "0x00000000000000000000000000000000397312c3cebb9e95adbb8d76fed485ba"
+SETUP_CONTRACT_ADDR = "0x59abc4557f6ddadc6699201cea760df353bdb6b8e1011c90188059c56338296"
+WALLET_ADDR = "0x003679f57605ceecc30e1075f00307d3c8be5d1d3640b1c280701f4f76637662"
 
 SCARB_TOML = toml.load("./contracts/Scarb.toml")
 
