@@ -31,6 +31,6 @@ Visit [http://127.0.0.1:48334/](http://127.0.0.1:48334/) in your browser. (Tip: 
 
 ## Our official docker hub
 
-- https://hub.docker.com/repository/docker/dimasmaualana/solana
-- https://hub.docker.com/repository/docker/dimasmaualana/eth
-- https://hub.docker.com/repository/docker/dimasmaualana/cairo
+- https://hub.docker.com/r/dimasmaualana/solana
+- https://hub.docker.com/r/dimasmaualana/eth
+- https://hub.docker.com/r/dimasmaualana/cairo
