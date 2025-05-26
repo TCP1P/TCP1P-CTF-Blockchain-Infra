@@ -46,6 +46,7 @@ os.makedirs(INSTANCE_BY_TEAM_DIR, exist_ok=True)
 os.makedirs(INSTANCE_BY_UUID_DIR, exist_ok=True)
 
 EVM_VERSION = os.getenv("EVM_VERSION") or "latest"
+ANVIL_EXTRA_OPTIONS = os.getenv("ANVIL_OPTIONS") or ""
 
 if BLOCKCHAIN_TYPE == "eth":
     print("EVM_VERSION:", EVM_VERSION)
@@ -234,6 +235,7 @@ def launch_ethereum_node(team_id: str) -> NodeInfo:
             "--port", str(node_port),
             "--block-base-fee-per-gas", "0",
             "--hardfork", EVM_VERSION,
+            ANVIL_EXTRA_OPTIONS
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
