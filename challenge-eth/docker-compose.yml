@@ -11,6 +11,7 @@ services:
       - LAUNCHER_PORT=8080
       # - DISABLE_TICKET=true
       - EVM_VERSION=${EVM_VERSION}
+      - ANVIL_EXTRA_OPTIONS=${ANVIL_EXTRA_OPTIONS}
     deploy:
       resources:
         limits:
