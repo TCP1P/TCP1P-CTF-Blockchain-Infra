@@ -37,4 +37,14 @@ def deploy(web3: Web3, deployer_address: str, deployer_privateKey: str, player_a
 
     return rcpt.contractAddress
 
-app = sandbox.run_launcher(deploy)
+def pre_tx_hook(data):
+    pass
+
+def post_tx_hook(data, response):
+    pass
+
+app = sandbox.run_launcher(
+    deploy,
+    pre_tx_hook=pre_tx_hook,
+    post_tx_hook=post_tx_hook
+)

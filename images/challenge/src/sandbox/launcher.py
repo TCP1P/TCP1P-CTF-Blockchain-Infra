@@ -227,6 +227,11 @@ def proxy_request(uuid: str):
             blocked = method in rules["blocked_methods"]
             if not allowed or blocked:
                 return jsonrpc_error(-32601, "Method not allowed", data.get("id"))
+            # pre-tx hook
+            if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
+                pre_tx_hook = app.config.get("PRE_TX_HOOK")
+                if pre_tx_hook:
+                    pre_tx_hook(data)
                 
         elif blockchain_type == "solana":
             if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
@@ -243,6 +248,13 @@ def proxy_request(uuid: str):
             timeout=10
         )
         
+        # post-tx hook
+        if blockchain_type == "eth":
+            if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
+                post_tx_hook = app.config.get("POST_TX_HOOK")
+                if post_tx_hook:
+                    post_tx_hook(data, response)
+
         return Response(
             response.content,
             status=response.status_code,
@@ -414,7 +426,14 @@ def handle_exceptions(e):
     return error_response(f"An unexpected error occurred: {str(e)}", 500)
 
 # Application initialization
-def run_launcher(deploy_handler: Callable):
+def run_launcher(
+    deploy_handler: Callable,
+    pre_tx_hook: Callable = None, post_tx_hook: Callable = None
+) -> Flask:
     """Initialize and run the application"""
     app.config["DEPLOY_HANDLER"] = deploy_handler
+    
+    app.config["PRE_TX_HOOK"] = pre_tx_hook
+    app.config["POST_TX_HOOK"] = post_tx_hook
+    
     return app
