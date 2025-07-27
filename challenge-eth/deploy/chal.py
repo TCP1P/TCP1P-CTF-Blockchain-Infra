@@ -37,7 +37,7 @@ def deploy(web3: Web3, deployer_address: str, deployer_privateKey: str, player_a
 
     return rcpt.contractAddress
 
-def pre_tx_hook(data):
+def pre_tx_hook(data, node_info):
     """
     Executed before a transaction is processed.
     Returns:
@@ -46,7 +46,7 @@ def pre_tx_hook(data):
     """
     return 200, ""
 
-def post_tx_hook(data, response):
+def post_tx_hook(data, response, node_info):
     
     """
     Executed after a transaction is processed.

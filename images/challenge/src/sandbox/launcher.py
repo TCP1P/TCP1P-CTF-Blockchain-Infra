@@ -219,6 +219,12 @@ def proxy_request(uuid: str):
         # Validate JSON-RPC request
         if not data or "method" not in data:
             return jsonrpc_error(-32600, "Invalid request", data.get("id"))
+
+        # Validate node exists
+        if not instance_exists(uuid):
+            return jsonrpc_error(-32602, "Invalid instance ID", data.get("id"))
+            
+        node_info = load_instance(uuid)
             
         # Validate method permissions
         method = data["method"]
@@ -231,7 +237,7 @@ def proxy_request(uuid: str):
             if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
                 pre_tx_hook = app.config.get("PRE_TX_HOOK")
                 if pre_tx_hook:
-                    status, msg = pre_tx_hook(data)
+                    status, msg = pre_tx_hook(data, node_info=node_info)
                     if status // 100 != 2:
                         return jsonrpc_error(status, msg, data.get("id"))
                 
@@ -240,10 +246,6 @@ def proxy_request(uuid: str):
                 return jsonrpc_error(-32601, "Method not allowed", data.get("id"))
         
         # Forward request to node
-        if not instance_exists(uuid):
-            return jsonrpc_error(-32602, "Invalid instance ID", data.get("id"))
-            
-        node_info = load_instance(uuid)
         response = requests.post(
             f"http://127.0.0.1:{node_info.port}/",
             json=data,
@@ -255,7 +257,7 @@ def proxy_request(uuid: str):
             if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
                 post_tx_hook = app.config.get("POST_TX_HOOK")
                 if post_tx_hook:
-                    status, msg = post_tx_hook(data, response)
+                    status, msg = post_tx_hook(data, response, node_info=node_info)
                     if status // 100 != 2:
                         return jsonrpc_error(status, msg, data.get("id"))
 
