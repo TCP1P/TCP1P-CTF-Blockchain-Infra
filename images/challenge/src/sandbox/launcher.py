@@ -219,6 +219,12 @@ def proxy_request(uuid: str):
         # Validate JSON-RPC request
         if not data or "method" not in data:
             return jsonrpc_error(-32600, "Invalid request", data.get("id"))
+
+        # Validate node exists
+        if not instance_exists(uuid):
+            return jsonrpc_error(-32602, "Invalid instance ID", data.get("id"))
+            
+        node_info = load_instance(uuid)
             
         # Validate method permissions
         method = data["method"]
@@ -227,22 +233,34 @@ def proxy_request(uuid: str):
             blocked = method in rules["blocked_methods"]
             if not allowed or blocked:
                 return jsonrpc_error(-32601, "Method not allowed", data.get("id"))
+            # pre-tx hook
+            if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
+                pre_tx_hook = app.config.get("PRE_TX_HOOK")
+                if pre_tx_hook:
+                    status, msg = pre_tx_hook(data, node_info=node_info)
+                    if status // 100 != 2:
+                        return jsonrpc_error(status, msg, data.get("id"))
                 
         elif blockchain_type == "solana":
             if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
                 return jsonrpc_error(-32601, "Method not allowed", data.get("id"))
         
         # Forward request to node
-        if not instance_exists(uuid):
-            return jsonrpc_error(-32602, "Invalid instance ID", data.get("id"))
-            
-        node_info = load_instance(uuid)
         response = requests.post(
             f"http://127.0.0.1:{node_info.port}/",
             json=data,
             timeout=10
         )
         
+        # post-tx hook
+        if blockchain_type == "eth":
+            if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
+                post_tx_hook = app.config.get("POST_TX_HOOK")
+                if post_tx_hook:
+                    status, msg = post_tx_hook(data, response, node_info=node_info)
+                    if status // 100 != 2:
+                        return jsonrpc_error(status, msg, data.get("id"))
+
         return Response(
             response.content,
             status=response.status_code,
@@ -414,7 +432,14 @@ def handle_exceptions(e):
     return error_response(f"An unexpected error occurred: {str(e)}", 500)
 
 # Application initialization
-def run_launcher(deploy_handler: Callable):
+def run_launcher(
+    deploy_handler: Callable,
+    pre_tx_hook: Callable = None, post_tx_hook: Callable = None
+) -> Flask:
     """Initialize and run the application"""
     app.config["DEPLOY_HANDLER"] = deploy_handler
+    
+    app.config["PRE_TX_HOOK"] = pre_tx_hook
+    app.config["POST_TX_HOOK"] = post_tx_hook
+    
     return app
