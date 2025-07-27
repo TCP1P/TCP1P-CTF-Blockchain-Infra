@@ -231,7 +231,9 @@ def proxy_request(uuid: str):
             if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
                 pre_tx_hook = app.config.get("PRE_TX_HOOK")
                 if pre_tx_hook:
-                    pre_tx_hook(data)
+                    status, msg = pre_tx_hook(data)
+                    if status // 100 != 2:
+                        return jsonrpc_error(status, msg, data.get("id"))
                 
         elif blockchain_type == "solana":
             if any(method.startswith(ns) for ns in rules["blocked_namespaces"]):
@@ -253,7 +255,9 @@ def proxy_request(uuid: str):
             if method == "eth_sendTransaction" or method == "eth_sendRawTransaction":
                 post_tx_hook = app.config.get("POST_TX_HOOK")
                 if post_tx_hook:
-                    post_tx_hook(data, response)
+                    status, msg = post_tx_hook(data, response)
+                    if status // 100 != 2:
+                        return jsonrpc_error(status, msg, data.get("id"))
 
         return Response(
             response.content,

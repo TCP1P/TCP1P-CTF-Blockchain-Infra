@@ -38,10 +38,23 @@ def deploy(web3: Web3, deployer_address: str, deployer_privateKey: str, player_a
     return rcpt.contractAddress
 
 def pre_tx_hook(data):
-    pass
+    """
+    Executed before a transaction is processed.
+    Returns:
+        - status: HTTP status code (e.g., 200 for success, 400 for error)
+        - msg: Message to be returned in the response in case of non 2xx status
+    """
+    return 200, ""
 
 def post_tx_hook(data, response):
-    pass
+    
+    """
+    Executed after a transaction is processed.
+    Returns:
+        - status: HTTP status code (e.g., 200 for success, 400 for error)
+        - msg: Message to be returned in the response in case of non 2xx status
+    """
+    return 200, ""
 
 app = sandbox.run_launcher(
     deploy,
