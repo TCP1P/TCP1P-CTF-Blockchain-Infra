@@ -28,6 +28,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
+import copy from "copy-to-clipboard"
 import { useMobile } from "@/hooks/use-mobile"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -413,12 +414,20 @@ export default function BlockchainLauncher() {
             size="sm"
             className="mt-2 minimal-button"
             onClick={() => {
-              navigator.clipboard.writeText(flag)
-              toast({
-                title: "Copied!",
-                description: "Flag copied to clipboard.",
-                duration: 2000,
-              })
+              try {
+                copyToClipboard(flag)
+                toast({
+                  title: "Copied!",
+                  description: "Flag copied to clipboard.",
+                  duration: 2000,
+                })
+              } catch (err) {
+                toast({
+                  title: "Error!",
+                  description: "Failed to copy flag: " + (err instanceof Error ? err.message : 'Unknown error'),
+                  duration: 3000,
+                })
+              }
             }}
           >
             <Copy className="mr-2 h-4 w-4" /> Copy Flag
@@ -429,19 +438,33 @@ export default function BlockchainLauncher() {
     })
   }
 
+  // Simple clipboard utility using copy-to-clipboard library
+  const copyToClipboard = (text: string) => {
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      throw new Error("Invalid text to copy")
+    }
+    
+    const success = copy(text)
+    if (!success) {
+      throw new Error("Failed to copy text to clipboard")
+    }
+    return success
+  }
+
   // Copy challenge command
   const copyChallenge = () => {
     if (!challenge) {
       showAlert("error", "No challenge command to copy.")
       return
     }
-    navigator.clipboard
-      .writeText(challenge)
-      .then(() => {
-        setCopyState({ ...copyState, challenge: true })
-        setTimeout(() => setCopyState({ ...copyState, challenge: false }), 2000)
-      })
-      .catch((err) => showAlert("error", "Failed to copy challenge: " + err))
+    
+    try {
+      copyToClipboard(challenge)
+      setCopyState(prev => ({ ...prev, challenge: true }))
+      setTimeout(() => setCopyState(prev => ({ ...prev, challenge: false })), 2000)
+    } catch (err) {
+      showAlert("error", "Failed to copy challenge: " + (err instanceof Error ? err.message : 'Unknown error'))
+    }
   }
 
   // Copy credentials in a specific format
@@ -477,7 +500,7 @@ export default function BlockchainLauncher() {
     entries.sort((a, b) => {
       let idxA = desiredOrder.indexOf(a.entryKey)
       let idxB = desiredOrder.indexOf(b.entryKey)
-      if (idxA === -1) idxA = Number.POSITIVE_INFINITY // put non-ordered items at the end
+      if (idxA === -1) idxA = Number.POSITIVE_INFINITY
       if (idxB === -1) idxB = Number.POSITIVE_INFINITY
       return idxA - idxB
     })
@@ -503,14 +526,14 @@ export default function BlockchainLauncher() {
         credentialsText = entries.map((entry) => `${entry.entryKey} = "${entry.entryValue}"`).join("\n")
     }
 
-    navigator.clipboard
-      .writeText(credentialsText)
-      .then(() => {
-        showAlert("success", `Credentials copied as ${formatName} format!`)
-        setCopyState({ ...copyState, credentials: true })
-        setTimeout(() => setCopyState({ ...copyState, credentials: false }), 2000)
-      })
-      .catch((err) => showAlert("error", "Failed to copy credentials: " + err))
+    try {
+      copyToClipboard(credentialsText)
+      showAlert("success", `Credentials copied as ${formatName} format!`)
+      setCopyState(prev => ({ ...prev, credentials: true }))
+      setTimeout(() => setCopyState(prev => ({ ...prev, credentials: false })), 2000)
+    } catch (err) {
+      showAlert("error", `Failed to copy credentials: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
   }
 
   // Extract challenge string from the displayed command
@@ -780,12 +803,20 @@ export default function BlockchainLauncher() {
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => {
-                          navigator.clipboard.writeText(entry.value)
-                          toast({
-                            title: "Copied!",
-                            description: `${entry.name} copied to clipboard.`,
-                            duration: 2000,
-                          })
+                          try {
+                            copyToClipboard(entry.value)
+                            toast({
+                              title: "Copied!",
+                              description: `${entry.name} copied to clipboard.`,
+                              duration: 2000,
+                            })
+                          } catch (err) {
+                            toast({
+                              title: "Error!",
+                              description: `Failed to copy ${entry.name}: ` + (err instanceof Error ? err.message : 'Unknown error'),
+                              duration: 3000,
+                            })
+                          }
                         }}
                       >
                         <Copy className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1047,13 +1078,34 @@ export default function BlockchainLauncher() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="slide-up">
-                      <DropdownMenuItem onClick={() => copyCredentialsAs("js")} className="cursor-pointer">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          copyCredentialsAs("js")
+                        }} 
+                        className="cursor-pointer"
+                      >
                         <span className="mr-2 text-yellow-500">JS</span> JavaScript
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => copyCredentialsAs("python")} className="cursor-pointer">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          copyCredentialsAs("python")
+                        }} 
+                        className="cursor-pointer"
+                      >
                         <span className="mr-2 text-blue-500">PY</span> Python
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => copyCredentialsAs("rust")} className="cursor-pointer">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          copyCredentialsAs("rust")
+                        }} 
+                        className="cursor-pointer"
+                      >
                         <span className="mr-2 text-orange-500">RS</span> Rust
                       </DropdownMenuItem>
                     </DropdownMenuContent>

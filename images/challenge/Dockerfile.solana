@@ -14,15 +14,21 @@ RUN curl -fsSL https://deb.nodesource.com/setup_23.x | sh && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Solana tools
-ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:$PATH"
+ENV PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:/root/.avm/bin:$PATH"
 RUN cargo install --git https://github.com/coral-xyz/anchor avm --force && \
     avm install 0.31.1 && \
-    avm use 0.31.1
+    avm use 0.31.1 && \
+    which anchor || echo "anchor not found in PATH"
 RUN sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.14/install)"
 RUN agave-install init 2.1.0
+
 # Build Solana dependencies
 COPY ./solana-deps /solana-deps
-RUN cd /solana-deps && anchor build && rm -rf /solana-deps
+RUN cd /solana-deps && \
+    echo "PATH: $PATH" && \
+    which anchor && \
+    anchor build && \
+    rm -rf /solana-deps
 
 # Set up environment
 ENV PYTHONPATH=/usr/lib/python
