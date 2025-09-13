@@ -46,7 +46,7 @@ LOCK_FILE = "/tmp/solana.lock"
 os.makedirs(INSTANCE_BY_TEAM_DIR, exist_ok=True)
 os.makedirs(INSTANCE_BY_UUID_DIR, exist_ok=True)
 
-EVM_VERSION = os.getenv("EVM_VERSION") or "latest"
+EVM_VERSION = os.getenv("EVM_VERSION") or None
 ANVIL_EXTRA_OPTIONS = shlex.split(os.getenv("ANVIL_EXTRA_OPTIONS") or "")
 
 if BLOCKCHAIN_TYPE == "eth":
@@ -226,18 +226,23 @@ def launch_ethereum_node(team_id: str) -> NodeInfo:
     node_uuid = str(uuid4())
 
     
+    # Setup anvil
+    anvil_args = [
+        "anvil",
+        "--accounts", "2",
+        "--balance", "5000",
+        "--mnemonic", mnemonic,
+        "--port", str(node_port),
+        "--block-base-fee-per-gas", "0"
+    ]
+    if EVM_VERSION is not None:
+        anvil_args.append("--hardfork")
+        anvil_args.append(EVM_VERSION)
+    anvil_args.extend(ANVIL_EXTRA_OPTIONS)
+    
     # Start Anvil process
     anvil_process = subprocess.Popen(
-        args=[
-            "anvil",
-            "--accounts", "2",
-            "--balance", "5000",
-            "--mnemonic", mnemonic,
-            "--port", str(node_port),
-            "--block-base-fee-per-gas", "0",
-            "--hardfork", EVM_VERSION,
-            *ANVIL_EXTRA_OPTIONS
-        ],
+        args=anvil_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
@@ -246,7 +251,10 @@ def launch_ethereum_node(team_id: str) -> NodeInfo:
     web3 = Web3(Web3.HTTPProvider(f"http://127.0.0.1:{node_port}"))
     while True:
         if anvil_process.poll() is not None:
-            raise RuntimeError("Anvil process failed to start")
+            errno = str(anvil_process.returncode)
+            stdout, stderr = anvil_process.communicate()
+            raise RuntimeError(f"Anvil process failed to start (errno: {errno}). "
+                               f"stdout: {stdout.decode()}. stderr: {stderr.decode()}.")
         if web3.is_connected():
             break
         time.sleep(0.1)
