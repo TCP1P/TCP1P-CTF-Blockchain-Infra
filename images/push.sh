@@ -9,7 +9,7 @@ VERSION=$1
 
 for IMAGE in cairo eth solana; do
   sudo docker tag dimasmaualana/$IMAGE:latest dimasmaualana/$IMAGE:$VERSION
-  sudo docker push dimasmaualana/$IMAGE:latest
   sudo docker push dimasmaualana/$IMAGE:$VERSION
+  sudo docker push dimasmaualana/$IMAGE:latest
   echo "Pushed dimasmaualana/$IMAGE:latest and :$VERSION"
 done
